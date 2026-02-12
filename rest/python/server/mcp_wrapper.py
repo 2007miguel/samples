@@ -152,8 +152,16 @@ async def mcp_dispatcher(request: Request):
                 checkout_id = params.get("id")
                 if not checkout_id:
                     return create_error_response(request_id, INVALID_PARAMS, "params.id is required for complete_checkout")
-                rest_response = await client.post(f"/checkout-sessions/{checkout_id}/complete", json=checkout_object, headers=headers)
-
+                complete_body = {
+                    "payment_data": params.get("payment_data"),
+                    "risk_signals": params.get("risk_signals", {})
+                }
+                rest_response = await client.post(
+                    f"/checkout-sessions/{checkout_id}/complete",
+                    json=complete_body,
+                    headers=headers
+                ) 
+                
             elif method == "cancel_checkout":
                 checkout_id = params.get("id")
                 if not checkout_id:
