@@ -186,6 +186,122 @@ async def mcp_dispatcher(request: Request):
             )
 
     except httpx.HTTPStatusError as e:
+        # ---------------------------------------------------------------------
+        # Improved REST -> JSON-RPC error mapping for security testing / MVP
+        # ---------------------------------------------------------------------
+        status = e.response.status_code
+        text = e.response.text
+
+        # Correlation fields (useful for evidence bundles)
+        req_id = headers.get("request-id")
+        idem_key = headers.get("idempotency-key")
+
+        logger.error(
+            "MCP Dispatcher failed. REST status=%s method=%s jsonrpc_id=%s request_id=%s idempotency_key=%s url=%s response=%s",
+            status,
+            method,
+            request_id,
+            req_id,
+            idem_key,
+            str(e.request.url) if getattr(e, "request", None) else None,
+            text,
+        )
+
+        # Defaults
+        error_code = INTERNAL_ERROR  # -32000
+        message = "Internal server error during REST call"
+
+        error_data = {
+            "http_status": status,
+            "response": text,
+            "request_id": req_id,
+            "idempotency_key": idem_key,
+            "method": method,
+            "url": str(e.request.url) if getattr(e, "request", None) else None,
+            # Classification fields for your MVP suite:
+            "category": "UPSTREAM_HTTP_ERROR",
+            "retryable": False,
+        }
+
+        # Try to parse REST error JSON (preserve original)
+        rest_error = None
+        try:
+            rest_error = e.response.json()
+            error_data["rest_error"] = rest_error
+        except Exception:
+            # Non-JSON or invalid JSON body
+            rest_error = None
+
+        # Extract common UCP-ish fields if present
+        if isinstance(rest_error, dict):
+            detail = rest_error.get("detail")
+            ucp_code = rest_error.get("code")
+            if ucp_code:
+                error_data["ucp_error_code"] = ucp_code
+            if detail:
+                message = detail  # show the upstream message to caller
+
+        # ---------------------------------------------------------------------
+        # HTTP status based classification (useful for differential testing)
+        # ---------------------------------------------------------------------
+        if status in (401, 403):
+            # AuthN/AuthZ gate failures (A1/Z1)
+            error_code = INVALID_PARAMS  # -32602 (or define a custom internal code if you prefer)
+            error_data["category"] = "AUTH_DENIED"
+            error_data["retryable"] = False
+
+        elif status == 404:
+            error_code = INVALID_PARAMS
+            error_data["category"] = "NOT_FOUND"
+            error_data["retryable"] = False
+
+        elif status == 409:
+            # Idempotency conflicts / illegal transitions / state conflicts (B1/U2)
+            error_code = INVALID_PARAMS
+            error_data["category"] = (
+                "IDEMPOTENCY_CONFLICT"
+                if error_data.get("ucp_error_code") in ("IDEMPOTENCY_CONFLICT", "IDEMPOTENCY_KEY_REUSED")
+                else "STATE_CONFLICT"
+            )
+            error_data["retryable"] = False
+
+        elif status == 422:
+            # Schema validation (U3)
+            error_code = INVALID_PARAMS
+            error_data["category"] = "SCHEMA_VALIDATION_FAILED"
+            error_data["retryable"] = False
+
+        elif status == 429:
+            # Rate limiting (resilience / backoff behavior)
+            error_code = INTERNAL_ERROR
+            error_data["category"] = "RATE_LIMITED"
+            error_data["retryable"] = True
+
+        elif 400 <= status < 500:
+            # Other client-side "business rule" rejections (U2, etc.)
+            error_code = INVALID_PARAMS
+            # If we have a known UCP error code, reflect it
+            if error_data.get("ucp_error_code") == "INVALID_REQUEST":
+                error_data["category"] = "BUSINESS_RULE_REJECTED"
+            else:
+                error_data["category"] = "CLIENT_ERROR"
+            error_data["retryable"] = False
+
+        else:
+            # 5xx from upstream: generally retryable depending on endpoint/semantics
+            error_code = INTERNAL_ERROR
+            error_data["category"] = "UPSTREAM_5XX"
+            error_data["retryable"] = True
+
+        return create_error_response(
+            request_id,
+            error_code,
+            message,
+            data=error_data,
+        )
+
+    '''
+    except httpx.HTTPStatusError as e:
         # Map specific REST errors to more meaningful JSON-RPC errors.
         logger.error(
             "MCP Dispatcher failed. REST call returned status %s for method %s. Response: %s",
@@ -221,4 +337,5 @@ async def mcp_dispatcher(request: Request):
             INTERNAL_ERROR,
             "An unexpected internal error occurred",
             data={"error_type": type(e).__name__, "details": str(e)},
-        )
+        ) 
+    '''

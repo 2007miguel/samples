@@ -81,7 +81,7 @@ def main(argv: Sequence[str]) -> None:
     )
     print("\nUsage:")  # noqa: T201
     print(config.FLAGS.main_module_help())  # noqa: T201
-    sys.exit(1)
+    sys.exit(1) 
 
   uvicorn.run(app, host="0.0.0.0", port=config.FLAGS.port)
 
