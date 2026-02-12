@@ -8,6 +8,11 @@
         "rest": {
           "schema": "https://ucp.dev/services/shopping/rest.openapi.json",
           "endpoint": "{{ENDPOINT}}"
+        },
+        "mcp": {
+          "schema": "https://ucp.dev/services/shopping/mcp.openrpc.json",
+          "endpoint": "{{ENDPOINT}}/ucp/mcp",
+          "version": "2026-01-11"
         }
       }
     },

@@ -23,10 +23,12 @@ from exceptions import UcpError
 from fastapi import FastAPI
 from fastapi import Request
 from fastapi.responses import JSONResponse
+from mcp_wrapper import mcp_dispatcher
 import generated_routes.ucp_routes
 from routes.discovery import router as discovery_router
 from routes.order import router as order_router
 import routes.ucp_implementation
+
 import uvicorn
 
 # --- App Setup ---
@@ -59,6 +61,9 @@ routes.ucp_implementation.apply_implementation(
 app.include_router(generated_routes.ucp_routes.router)
 app.include_router(order_router)
 app.include_router(discovery_router)
+# MCP JSON-RPC 2.0 Endpoint
+app.add_api_route("/ucp/mcp", mcp_dispatcher, methods=["POST"])
+
 
 
 def main(argv: Sequence[str]) -> None:
