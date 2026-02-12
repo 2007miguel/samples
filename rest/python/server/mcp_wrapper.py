@@ -16,6 +16,7 @@
 
 import logging
 import json
+from pathlib import Path
 
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse
@@ -31,14 +32,13 @@ INTERNAL_ERROR = -32000
 
 logger = logging.getLogger(__name__)
 
-SUPPORTED_TOOLS = [
-    "tools/list",
-    "create_checkout",
-    "get_checkout",
-    "update_checkout",
-    "complete_checkout",
-    "cancel_checkout",
-]
+# Load the detailed tool definitions from the JSON file.
+try:
+    with (Path(__file__).parent / "mcp_tools.json").open() as f:
+        SUPPORTED_TOOLS_DEFINITION = json.load(f)
+except (FileNotFoundError, json.JSONDecodeError) as e:
+    logger.error("Could not load mcp_tools.json: %s", e)
+    SUPPORTED_TOOLS_DEFINITION = []
 
 def create_error_response(request_id, code, message, data=None):
     """Creates a standard JSON-RPC 2.0 error response."""
@@ -119,7 +119,7 @@ async def mcp_dispatcher(request: Request):
                 return JSONResponse(
                     content={
                         "jsonrpc": JSON_RPC_VERSION,
-                        "result": {"tools": SUPPORTED_TOOLS},
+                        "result": {"tools": SUPPORTED_TOOLS_DEFINITION},
                         "id": request_id,
                     }
                 )

@@ -1,0 +1,116 @@
+[
+  {
+    "name": "tools/list",
+    "description": "Lists all available tools that the agent can call.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {},
+      "required": []
+    }
+  },
+  {
+    "name": "create_checkout",
+    "description": "Creates a new checkout session with initial items. Returns the full checkout object.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "_meta": {
+          "type": "object",
+          "description": "Metadata about the request, including the UCP profile.",
+          "properties": {
+            "ucp": {
+              "type": "object",
+              "properties": {
+                "profile": { "type": "string", "format": "uri" }
+              },
+              "required": ["profile"]
+            }
+          },
+          "required": ["ucp"]
+        },
+        "checkout": {
+          "type": "object",
+          "description": "The initial checkout object.",
+          "properties": {
+            "line_items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "item": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "string", "description": "The product ID." }
+                    },
+                    "required": ["id"]
+                  },
+                  "quantity": { "type": "integer", "minimum": 1 }
+                },
+                "required": ["item", "quantity"]
+              }
+            },
+            "currency": { "type": "string", "description": "The ISO 4217 currency code (e.g., 'USD')." }
+          },
+          "required": ["line_items", "currency"]
+        }
+      },
+      "required": ["_meta", "checkout"]
+    }
+  },
+  {
+    "name": "get_checkout",
+    "description": "Retrieves the current state of a checkout session by its ID.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "_meta": { "$ref": "#/definitions/meta" },
+        "id": { "type": "string", "description": "The unique ID of the checkout session to retrieve." }
+      },
+      "required": ["_meta", "id"]
+    }
+  },
+  {
+    "name": "update_checkout",
+    "description": "Updates an existing checkout session, for example to add items, apply discounts, or select fulfillment options.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "_meta": { "$ref": "#/definitions/meta" },
+        "id": { "type": "string", "description": "The unique ID of the checkout session to update." },
+        "checkout": {
+          "type": "object",
+          "description": "A checkout object containing the fields to update."
+        }
+      },
+      "required": ["_meta", "id", "checkout"]
+    }
+  },
+  {
+    "name": "complete_checkout",
+    "description": "Completes a checkout session by processing the payment.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "_meta": { "$ref": "#/definitions/meta" },
+        "id": { "type": "string", "description": "The unique ID of the checkout session to complete." },
+        "payment_data": {
+          "type": "object",
+          "description": "The encrypted payment instrument and details from the payment handler."
+        }
+      },
+      "required": ["_meta", "id", "payment_data"]
+    }
+  },
+  {
+    "name": "cancel_checkout",
+    "description": "Cancels an in-progress checkout session.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "_meta": { "$ref": "#/definitions/meta" },
+        "id": { "type": "string", "description": "The unique ID of the checkout session to cancel." }
+      },
+      "required": ["_meta", "id"]
+    }
+  }
+]
