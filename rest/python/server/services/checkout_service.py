@@ -330,8 +330,14 @@ class CheckoutService:
     # Validate inventory and recalculate totals (Server is authority)
     await self._recalculate_totals(checkout)
     await self._validate_inventory(checkout)
+    
+    # After creation, the checkout is still in progress, awaiting potential
+    # updates like fulfillment selection. The state should reflect this.
+    checkout.status = CheckoutStatus.IN_PROGRESS
 
-    checkout.status = CheckoutStatus.READY_FOR_COMPLETE
+    # We can check if it's already completeable and set the state accordingly.
+    if self._is_fulfillment_valid(checkout):
+        checkout.status = CheckoutStatus.READY_FOR_COMPLETE
 
     response_body = checkout.model_dump(mode="json", by_alias=True)
 
@@ -587,6 +593,12 @@ class CheckoutService:
     await self._recalculate_totals(existing)
     await self._validate_inventory(existing)
 
+    # After an update, re-evaluate if the checkout is now ready for completion.
+    if self._is_fulfillment_valid(existing):
+        existing.status = CheckoutStatus.READY_FOR_COMPLETE
+    else:
+        existing.status = CheckoutStatus.IN_PROGRESS
+
     response_body = existing.model_dump(mode="json", by_alias=True)
 
     await db.save_checkout(
@@ -650,24 +662,8 @@ class CheckoutService:
     checkout = await self._get_and_validate_checkout(checkout_id)
     self._ensure_modifiable(checkout, "complete")
 
-    # Process Payment
-    await self._process_payment(payment)
-
     # Validate Fulfillment (Required for completion in this implementation)
-    fulfillment_valid = False
-    if checkout.fulfillment and checkout.fulfillment.root.methods:
-      for method in checkout.fulfillment.root.methods:
-        if method.type == "shipping" and not method.selected_destination_id:
-          continue
-        if method.groups:
-          for group in method.groups:
-            if group.selected_option_id:
-              fulfillment_valid = True
-              break
-        if fulfillment_valid:
-          break
-
-    if not fulfillment_valid:
+    if not self._is_fulfillment_valid(checkout):
       raise InvalidRequestError(
         "Fulfillment address and option must be selected before completion."
       )
@@ -967,6 +963,24 @@ class CheckoutService:
       raise CheckoutNotModifiableError(
         f"Cannot {action} checkout in state '{checkout.status}'"
       )
+
+  def _is_fulfillment_valid(self, checkout: Checkout) -> bool:
+    """Check if fulfillment information is complete enough for completion."""
+    if not checkout.fulfillment or not checkout.fulfillment.root.methods:
+      # Or, if fulfillment is optional, return True here.
+      # For this implementation, it's required.
+      return False
+
+    for method in checkout.fulfillment.root.methods:
+      if method.type == "shipping" and not method.selected_destination_id:
+        continue  # This method isn't fully configured, check others.
+      if method.groups:
+        for group in method.groups:
+          if group.selected_option_id:
+            return True  # At least one group has a selected option.
+
+    # No method/group has a selected option.
+    return False
 
   async def _validate_inventory(
     self,
