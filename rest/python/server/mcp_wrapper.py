@@ -150,16 +150,10 @@ async def mcp_dispatcher(request: Request):
                 )
 
             if tool_name == "create_checkout":
-                # The create_checkout service only needs line_items and currency.
-                # The service layer is responsible for fetching product details.
-                create_payload = {
-                    "line_items": checkout_object.get("line_items", []),
-                    "currency": checkout_object.get("currency"),
-                    # The REST endpoint requires a 'payment' object, even if empty.
-                    "payment": checkout_object.get("payment", {}),
-                }
+                # Pass the entire checkout object from the arguments to the REST service.
+                # The service layer is responsible for processing all the provided details.
                 rest_response = await client.post(
-                    "/checkout-sessions", json=create_payload, headers=headers
+                    "/checkout-sessions", json=checkout_object, headers=headers
                 )
             elif tool_name == "get_checkout":
                 checkout_id = tool_arguments.get("id")
