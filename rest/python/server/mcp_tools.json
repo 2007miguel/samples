@@ -1,11 +1,21 @@
 [
   {
-    "name": "tools/list",
-    "description": "Lists all available tools that the agent can call.",
-    "inputSchema": {
-      "type": "object",
-      "properties": {},
-      "required": []
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "definitions": {
+      "meta": {
+        "type": "object",
+        "description": "Metadata about the request, including the UCP profile.",
+        "properties": {
+          "ucp": {
+            "type": "object",
+            "properties": {
+              "profile": { "type": "string", "format": "uri" }
+            },
+            "required": ["profile"]
+          }
+        },
+        "required": ["ucp"]
+      }
     }
   },
   {
@@ -14,20 +24,7 @@
     "inputSchema": {
       "type": "object",
       "properties": {
-        "_meta": {
-          "type": "object",
-          "description": "Metadata about the request, including the UCP profile.",
-          "properties": {
-            "ucp": {
-              "type": "object",
-              "properties": {
-                "profile": { "type": "string", "format": "uri" }
-              },
-              "required": ["profile"]
-            }
-          },
-          "required": ["ucp"]
-        },
+        "_meta": { "$ref": "#/definitions/meta" },
         "checkout": {
           "type": "object",
           "description": "The initial checkout object.",
@@ -54,7 +51,7 @@
           "required": ["line_items", "currency"]
         }
       },
-      "required": ["_meta", "checkout"]
+      "required": ["checkout"]
     }
   },
   {
@@ -64,7 +61,7 @@
       "type": "object",
       "properties": {
         "_meta": { "$ref": "#/definitions/meta" },
-        "id": { "type": "string", "description": "The unique ID of the checkout session to retrieve." }
+        "id": { "type": "string", "description": "The unique ID of the checkout session." }
       },
       "required": ["_meta", "id"]
     }
@@ -76,13 +73,13 @@
       "type": "object",
       "properties": {
         "_meta": { "$ref": "#/definitions/meta" },
-        "id": { "type": "string", "description": "The unique ID of the checkout session to update." },
+        "id": { "type": "string", "description": "The unique ID of the checkout session." },
         "checkout": {
           "type": "object",
           "description": "A checkout object containing the fields to update."
         }
       },
-      "required": ["_meta", "id", "checkout"]
+      "required": ["id", "checkout"]
     }
   },
   {
@@ -92,7 +89,7 @@
       "type": "object",
       "properties": {
         "_meta": { "$ref": "#/definitions/meta" },
-        "id": { "type": "string", "description": "The unique ID of the checkout session to complete." },
+        "id": { "type": "string", "description": "The unique ID of the checkout session." },
         "payment_data": {
           "type": "object",
           "description": "The encrypted payment instrument and details from the payment handler."
@@ -108,7 +105,7 @@
       "type": "object",
       "properties": {
         "_meta": { "$ref": "#/definitions/meta" },
-        "id": { "type": "string", "description": "The unique ID of the checkout session to cancel." }
+        "id": { "type": "string", "description": "The unique ID of the checkout session." }
       },
       "required": ["_meta", "id"]
     }

@@ -78,11 +78,34 @@ async def mcp_dispatcher(request: Request):
             request_id, INVALID_REQUEST, "Invalid Request"
         )
 
-    method = body.get("method")
-    params = body.get("params", {})
+
+    # Per MCP standard, the actual tool name is inside params.name for 'tools/call'
+    if method == "tools/call":
+        params = body.get("params", {})
+        tool_name = params.get("name")
+        tool_arguments = params.get("arguments", {})
+        if not tool_name:
+            return create_error_response(
+                request_id, INVALID_PARAMS, "params.name is required for tools/call"
+            )
+    elif method == "tools/list":
+        logger.info("Dispatching MCP method 'tools/list'")
+        return JSONResponse(
+            content={
+                "jsonrpc": JSON_RPC_VERSION,
+                "result": {"tools": SUPPORTED_TOOLS_DEFINITION},
+                "id": request_id,
+            }
+        )
+    else:
+        return create_error_response(
+            request_id,
+            METHOD_NOT_FOUND,
+            f"Method '{method}' not found. Supported methods are 'tools/list' and 'tools/call'.",
+        )
 
     # 1. Validate required _meta parameter
-    meta = params.get("_meta", {})
+    meta = tool_arguments.get("_meta", {})
     if not meta.get("ucp", {}).get("profile"):
         return create_error_response(
             request_id,
@@ -100,22 +123,24 @@ async def mcp_dispatcher(request: Request):
     }
     if "request_id" in meta:
         headers["request-id"] = meta["request_id"]
-    idem = params.get("idempotency_key") or meta.get("idempotency_key")
+    idem = tool_arguments.get("idempotency_key") or meta.get("idempotency_key")
     if idem:
         headers["idempotency-key"] = idem
 
     # 3. Map MCP method to REST endpoint and dispatch
     base_url = str(request.base_url)
-    checkout_object = params.get("checkout", {})
+    checkout_object = tool_arguments.get("checkout", {})
 
     # Ensure 'payment' object exists for create_checkout, as it's required by the REST endpoint
-    if method == "create_checkout" and "payment" not in checkout_object:
+    if tool_name == "create_checkout" and "payment" not in checkout_object:
         checkout_object["payment"] = {}
 
     try:
         async with httpx.AsyncClient(base_url=base_url) as client:
-            logger.info("Dispatching MCP method '%s' to internal REST API", method)
-            if method == "tools/list":
+            logger.info(
+                "Dispatching MCP tool '%s' to internal REST API", tool_name
+            )
+            if tool_name == "tools/list":
                 return JSONResponse(
                     content={
                         "jsonrpc": JSON_RPC_VERSION,
@@ -124,7 +149,7 @@ async def mcp_dispatcher(request: Request):
                     }
                 )
 
-            if method == "create_checkout":
+            if tool_name == "create_checkout":
                 # The create_checkout service only needs line_items and currency.
                 # The service layer is responsible for fetching product details.
                 create_payload = {
@@ -136,25 +161,25 @@ async def mcp_dispatcher(request: Request):
                 rest_response = await client.post(
                     "/checkout-sessions", json=create_payload, headers=headers
                 )
-            elif method == "get_checkout":
-                checkout_id = params.get("id")
+            elif tool_name == "get_checkout":
+                checkout_id = tool_arguments.get("id")
                 if not checkout_id:
                     return create_error_response(request_id, INVALID_PARAMS, "params.id is required for get_checkout")
                 rest_response = await client.get(f"/checkout-sessions/{checkout_id}", headers=headers)
 
-            elif method == "update_checkout":
-                checkout_id = params.get("id")
+            elif tool_name == "update_checkout":
+                checkout_id = tool_arguments.get("id")
                 if not checkout_id:
                     return create_error_response(request_id, INVALID_PARAMS, "params.id is required for update_checkout")
                 rest_response = await client.put(f"/checkout-sessions/{checkout_id}", json=checkout_object, headers=headers)
 
-            elif method == "complete_checkout":
-                checkout_id = params.get("id")
+            elif tool_name == "complete_checkout":
+                checkout_id = tool_arguments.get("id")
                 if not checkout_id:
                     return create_error_response(request_id, INVALID_PARAMS, "params.id is required for complete_checkout")
                 complete_body = {
-                    "payment_data": params.get("payment_data"),
-                    "risk_signals": params.get("risk_signals", {})
+                    "payment_data": tool_arguments.get("payment_data"),
+                    "risk_signals": tool_arguments.get("risk_signals", {})
                 }
                 rest_response = await client.post(
                     f"/checkout-sessions/{checkout_id}/complete",
@@ -162,14 +187,14 @@ async def mcp_dispatcher(request: Request):
                     headers=headers
                 ) 
                 
-            elif method == "cancel_checkout":
-                checkout_id = params.get("id")
+            elif tool_name == "cancel_checkout":
+                checkout_id = tool_arguments.get("id")
                 if not checkout_id:
                     return create_error_response(request_id, INVALID_PARAMS, "params.id is required for cancel_checkout")
                 rest_response = await client.post(f"/checkout-sessions/{checkout_id}/cancel", json=checkout_object, headers=headers)
             else:
                 return create_error_response(
-                    request_id, METHOD_NOT_FOUND, f"Method not found: {method}"
+                    request_id, METHOD_NOT_FOUND, f"Tool not found: {tool_name}"
                 )
 
             # 4. Process response and format as JSON-RPC
@@ -300,36 +325,6 @@ async def mcp_dispatcher(request: Request):
             data=error_data,
         )
 
-    '''
-    except httpx.HTTPStatusError as e:
-        # Map specific REST errors to more meaningful JSON-RPC errors.
-        logger.error(
-            "MCP Dispatcher failed. REST call returned status %s for method %s. Response: %s",
-            e.response.status_code,
-            method,
-            e.response.text,
-        )
-
-        error_code = INTERNAL_ERROR
-        message = "Internal server error during REST call"
-        error_data = {"status_code": e.response.status_code, "response": e.response.text}
-
-        try:
-            # Try to parse the UCP error response from the REST API
-            rest_error = e.response.json()
-            if "detail" in rest_error and "code" in rest_error:
-                # If it's a client-side error (4xx), map it to Invalid Params
-                if 400 <= e.response.status_code < 500:
-                    error_code = INVALID_PARAMS
-                message = rest_error["detail"]
-                error_data["ucp_error_code"] = rest_error["code"]
-        except (json.JSONDecodeError, KeyError):
-            # If parsing fails, stick to the generic internal error
-            pass
-
-        return create_error_response(
-            request_id, error_code, message, data=error_data
-        )
     except Exception as e:
         logger.exception("An unexpected error occurred in mcp_dispatcher")
         return create_error_response(
@@ -337,5 +332,4 @@ async def mcp_dispatcher(request: Request):
             INTERNAL_ERROR,
             "An unexpected internal error occurred",
             data={"error_type": type(e).__name__, "details": str(e)},
-        ) 
-    '''
+        )
