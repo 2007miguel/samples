@@ -35,10 +35,11 @@ logger = logging.getLogger(__name__)
 # Load the detailed tool definitions from the JSON file.
 try:
     with (Path(__file__).parent / "mcp_tools.json").open() as f:
-        SUPPORTED_TOOLS_DEFINITION = json.load(f)
+        tools_data = json.load(f)
+        SUPPORTED_TOOLS_DEFINITION = tools_data.get("result", {}).get("tools", [])
 except (FileNotFoundError, json.JSONDecodeError) as e:
     logger.error("Could not load mcp_tools.json: %s", e)
-    SUPPORTED_TOOLS_DEFINITION = []
+    SUPPORTED_TOOLS_DEFINITION = [] # type: ignore
 
 def create_error_response(request_id, code, message, data=None):
     """Creates a standard JSON-RPC 2.0 error response."""
