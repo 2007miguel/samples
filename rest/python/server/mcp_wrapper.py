@@ -164,7 +164,6 @@ async def mcp_dispatcher(request: Request):
 
             elif tool_name == "update_checkout":
                 checkout_id = tool_arguments.get("id") 
-                logger.debug("update_checkout: 'id' not found or is falsy in tool_arguments: %s", tool_arguments)
                 if not checkout_id:
                     return create_error_response(request_id, INVALID_PARAMS, "params.id is required for update_checkout")
                 # The REST endpoint expects the ID in the body as well for validation.
