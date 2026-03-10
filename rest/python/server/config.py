@@ -51,6 +51,11 @@ try:
     "simulation_secret",
     str(uuid.uuid4()),
     "Secret key for simulation endpoints",
+  ) 
+  flags.DEFINE_string(
+    "access_token",
+    None,
+    "Bearer token required for protected endpoints",
   )
   flags.DEFINE_integer("port", None, "Port to run the server on")
 except flags.DuplicateFlagError:

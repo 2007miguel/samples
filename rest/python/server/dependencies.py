@@ -172,4 +172,36 @@ def get_checkout_service(
     products_session,
     transactions_session,
     str(request.base_url),
-  )
+  ) 
+  
+async def verify_access_token(
+    authorization: str | None = Header(None, alias="Authorization"),
+) -> None:
+    expected_token = config.FLAGS.access_token
+
+    # Si no configuras token, no bloquea nada.
+    if not expected_token:
+        return
+
+    if not authorization:
+        raise HTTPException(
+            status_code=401,
+            detail="Missing Authorization header",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid Authorization scheme",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    token = authorization.removeprefix("Bearer ").strip()
+
+    if token != expected_token:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid access token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )

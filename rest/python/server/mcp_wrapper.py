@@ -122,6 +122,10 @@ async def mcp_dispatcher(request: Request):
         "Accept": "application/json",
         "request-signature": "test",  # Add required header for REST endpoint
     }
+    # Forward Authorization header from the incoming MCP HTTP request
+    authorization = request.headers.get("authorization")
+    if authorization:
+        headers["Authorization"] = authorization
     if "request_id" in meta:
         headers["request-id"] = meta["request_id"]
     idem = tool_arguments.get("idempotency_key") or meta.get("idempotency_key")
