@@ -141,7 +141,7 @@ async def mcp_dispatcher(request: Request):
         checkout_object["payment"] = {}
 
     try:
-        async with httpx.AsyncClient(base_url=base_url) as client:
+        async with httpx.AsyncClient(base_url=base_url, verify=False) as client:
             logger.info(
                 "Dispatching MCP tool '%s' to internal REST API", tool_name
             )
