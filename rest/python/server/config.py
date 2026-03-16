@@ -58,6 +58,8 @@ try:
     "Bearer token required for protected endpoints",
   )
   flags.DEFINE_integer("port", None, "Port to run the server on")
+  flags.DEFINE_string("ssl_keyfile", None, "Path to SSL key file (key.pem)")
+  flags.DEFINE_string("ssl_certfile", None, "Path to SSL certificate file (cert.pem)")
 except flags.DuplicateFlagError:
   pass
 

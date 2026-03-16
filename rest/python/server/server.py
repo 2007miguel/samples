@@ -91,7 +91,16 @@ def main(argv: Sequence[str]) -> None:
     print(config.FLAGS.main_module_help())  # noqa: T201
     sys.exit(1) 
 
-  uvicorn.run(app, host="0.0.0.0", port=config.FLAGS.port)
+  ssl_keyfile = config.FLAGS.ssl_keyfile
+  ssl_certfile = config.FLAGS.ssl_certfile
+
+  if ssl_keyfile and ssl_certfile:
+    logger.info("Starting server with HTTPS enabled.")
+    uvicorn.run(app, host="0.0.0.0", port=config.FLAGS.port, ssl_keyfile=ssl_keyfile, ssl_certfile=ssl_certfile)
+  else:
+    logger.info("Starting server with HTTP. For HTTPS, provide --ssl_keyfile and --ssl_certfile.")
+    uvicorn.run(app, host="0.0.0.0", port=config.FLAGS.port)
+
 
 
 if __name__ == "__main__":
