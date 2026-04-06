@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Botanic - Modern Floristry</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,700&family=Inter:wght@300;400;500;600&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --page-bg: #f5f4ef;
+            --surface: #ffffff;
+            --surface-soft: #f0efe9;
+            --text-main: #223127;
+            --text-muted: #6e786f;
+            --border-color: #d9e0d7;
+            --accent: #2f4a3a;
+            --accent-deep: #24392d;
+            --accent-soft: rgba(255, 255, 255, 0.12);
+            --stock-in: #dfe9e0;
+            --stock-in-text: #244133;
+            --stock-out: #f4dfd9;
+            --stock-out-text: #8a3e2d;
+            --shadow-soft: 0 10px 24px rgba(20, 30, 24, 0.05);
+            --radius-xl: 28px;
+            --radius-lg: 22px;
+            --radius-md: 16px;
+            --radius-pill: 999px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            background: var(--page-bg);
+            color: var(--text-main);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .page-wrap {
+            width: 100%;
+            padding: 20px 24px 40px;
+        }
+
+        .topbar,
+        .hero-section,
+        .content-section,
+        .footer-shell {
+            width: 100%;
+            max-width: none;
+            margin: 0 auto;
+        }
+
+        .topbar-inner {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            background: rgba(255, 255, 255, 0.75);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 12px 14px;
+            box-shadow: var(--shadow-soft);
+            backdrop-filter: blur(8px);
+        }
+
+        .topbar-left,
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .menu-chip,
+        .icon-btn,
+        .dropdown-visual {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border: 1px solid var(--border-color);
+            background: var(--surface);
+            color: var(--text-main);
+            padding: 12px 16px;
+            border-radius: var(--radius-pill);
+            font-size: 0.95rem;
+            line-height: 1;
+            white-space: nowrap;
+        }
+
+        .search-shell {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 320px;
+            border: 1px solid var(--border-color);
+            background: var(--surface);
+            color: var(--text-muted);
+            padding: 12px 16px;
+            border-radius: var(--radius-pill);
+            font-size: 0.95rem;
+        }
+
+        .menu-chip svg,
+        .icon-btn svg,
+        .dropdown-visual svg,
+        .search-shell svg,
+        .quick-icon svg {
+            width: 16px;
+            height: 16px;
+            stroke: currentColor;
+            flex-shrink: 0;
+        }
+
+        .hero-section {
+            margin-top: 20px;
+        }
+
+        .hero-panel {
+            width: 100%;
+            background: linear-gradient(180deg, #335241 0%, #2f4a3a 100%);
+            border-radius: var(--radius-xl);
+            padding: 42px 28px 24px;
+            box-shadow: 0 18px 38px rgba(36, 57, 45, 0.16);
+        }
+
+        .hero-main {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+
+        .hero-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 4rem;
+            line-height: 1;
+            margin: 0;
+            color: #f7f5ef;
+            letter-spacing: -1px;
+        }
+
+        .hero-subtitle {
+            margin: 14px auto 0;
+            color: rgba(247, 245, 239, 0.78);
+            font-size: 1.02rem;
+            max-width: 620px;
+            line-height: 1.6;
+        }
+
+        .shop-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: end;
+            gap: 18px;
+            flex-wrap: wrap;
+        }
+
+        .shop-toolbar-left,
+        .shop-toolbar-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .toolbar-label {
+            font-size: 0.76rem;
+            text-transform: uppercase;
+            letter-spacing: 1.6px;
+            font-weight: 700;
+            color: rgba(247, 245, 239, 0.72);
+        }
+
+        .hero-panel .dropdown-visual {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            color: #f7f5ef;
+            min-width: 190px;
+            justify-content: space-between;
+        }
+
+        .content-section {
+            margin-top: 24px;
+        }
+
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 20px;
+            width: 100%;
+        }
+
+        .product-card {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            box-shadow: 0 8px 20px rgba(20, 30, 24, 0.04);
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+            position: relative;
+        }
+
+        .product-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 14px 28px rgba(20, 30, 24, 0.08);
+        }
+
+        .image-wrapper {
+            position: relative;
+            width: 100%;
+            padding-top: 108%;
+            background: linear-gradient(135deg, #f4f2ec, #ece8df);
+            overflow: hidden;
+        }
+
+        .image-wrapper img {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.4s ease;
+        }
+
+        .product-card:hover .image-wrapper img {
+            transform: scale(1.03);
+        }
+
+        .quick-icons {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 2;
+        }
+
+        .quick-icon {
+            width: 38px;
+            height: 38px;
+            display: grid;
+            place-items: center;
+            background: rgba(255, 255, 255, 0.92);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            border-radius: 50%;
+            color: var(--text-main);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+            backdrop-filter: blur(4px);
+        }
+
+        .product-info {
+            padding: 18px 16px 20px;
+            text-align: center;
+        }
+
+        .product-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            line-height: 1.25;
+            margin: 0 0 8px;
+            color: var(--text-main);
+        }
+
+        .product-price {
+            font-size: 1.02rem;
+            font-weight: 600;
+            margin: 0 0 12px;
+            color: var(--text-main);
+        }
+
+        .stock-status {
+            display: inline-block;
+            padding: 7px 11px;
+            border-radius: var(--radius-pill);
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .stock-status.in-stock {
+            background: var(--stock-in);
+            color: var(--stock-in-text);
+        }
+
+        .stock-status.out-of-stock {
+            background: var(--stock-out);
+            color: var(--stock-out-text);
+        }
+
+        .footer-shell {
+            margin-top: 24px;
+        }
+
+        .footer-inner {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.75);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 18px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.88rem;
+            box-shadow: var(--shadow-soft);
+        }
+
+        @media (max-width: 900px) {
+            .hero-title {
+                font-size: 3rem;
+            }
+
+            .shop-toolbar,
+            .topbar-inner {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .topbar-left,
+            .topbar-right,
+            .shop-toolbar-left,
+            .shop-toolbar-right {
+                justify-content: center;
+            }
+
+            .search-shell {
+                min-width: unset;
+                width: 100%;
+            }
+
+            .hero-panel .dropdown-visual {
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .page-wrap {
+                padding: 14px 14px 28px;
+            }
+
+            .hero-panel {
+                padding: 30px 18px 18px;
+            }
+
+            .hero-title {
+                font-size: 2.35rem;
+            }
+
+            .hero-subtitle {
+                font-size: 0.95rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="page-wrap">
+        <div class="topbar">
+            <div class="topbar-inner">
+                <div class="topbar-left">
+                    <div class="menu-chip">
+                        <svg fill="none" viewBox="0 0 24 24" stroke-width="1.8">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                        Menu
+                    </div>
+
+                    <div class="search-shell">
+                        <svg fill="none" viewBox="0 0 24 24" stroke-width="1.8">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="m21 21-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z" />
+                        </svg>
+                        <span>Search arrangements...</span>
+                    </div>
+                </div>
+
+                <div class="topbar-right">
+                    <div class="icon-btn">
+                        <svg fill="none" viewBox="0 0 24 24" stroke-width="1.8">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M16 7a4 4 0 1 0-8 0M5 20h14l-1-10H6L5 20Z" />
+                        </svg>
+                        Cart
+                    </div>
+
+                    <div class="icon-btn">
+                        <svg fill="none" viewBox="0 0 24 24" stroke-width="1.8">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M15.75 6.75a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.5 20.25a7.5 7.5 0 0 1 15 0" />
+                        </svg>
+                        Account
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <header class="hero-section">
+            <div class="hero-panel">
+                <div class="hero-main">
+                    <h1 class="hero-title">Botanic</h1>
+                    <p class="hero-subtitle">Curated floral arrangements, sourced locally.</p>
+                </div>
+
+                <div class="shop-toolbar">
+                    <div class="shop-toolbar-left">
+                        <span class="toolbar-label">Collection</span>
+                        <div class="dropdown-visual">
+                            <span>All Bouquets</span>
+                            <svg fill="none" viewBox="0 0 24 24" stroke-width="1.8">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6" />
+                            </svg>
+                        </div>
+                    </div>
+
+                    <div class="shop-toolbar-right">
+                        <span class="toolbar-label">Sort by</span>
+                        <div class="dropdown-visual">
+                            <span>Featured</span>
+                            <svg fill="none" viewBox="0 0 24 24" stroke-width="1.8">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="content-section">
+            <div class="product-grid">
+                <!-- PRODUCTS_PLACEHOLDER -->
+            </div>
+        </main>
+
+        <footer class="footer-shell">
+            <div class="footer-inner">
+                <p>&copy; 2026 Botanic. All rights reserved. Preview Mode.</p>
+            </div>
+        </footer>
+    </div>
+</body>
+
+</html>

@@ -60,6 +60,9 @@ try:
   flags.DEFINE_integer("port", None, "Port to run the server on")
   flags.DEFINE_string("ssl_keyfile", None, "Path to SSL key file (key.pem)")
   flags.DEFINE_string("ssl_certfile", None, "Path to SSL certificate file (cert.pem)")
+  
+  _default_data_dir = str(Path(__file__).resolve().parent.parent / "test_data" / "flower_shop")
+  flags.DEFINE_string("static_data_dir", _default_data_dir, "Path to static CSV data for frontend")
 except flags.DuplicateFlagError:
   pass
 

@@ -22,7 +22,10 @@ import config
 from exceptions import UcpError
 from fastapi import FastAPI
 from fastapi import Request, Depends
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
+import csv
+from pathlib import Path
 from mcp_wrapper import mcp_dispatcher
 import generated_routes.ucp_routes
 from routes.discovery import router as discovery_router
@@ -66,6 +69,74 @@ app.include_router(order_router,
   dependencies=[Depends(dependencies.verify_access_token)],
 )
 app.include_router(discovery_router)
+
+images_dir = Path(__file__).resolve().parent / "images"
+images_dir.mkdir(exist_ok=True)
+app.mount("/images", StaticFiles(directory=str(images_dir)), name="images")
+
+@app.get("/page", response_class=HTMLResponse)
+async def botanic_page():
+  """Simple static frontend for botanic.com"""
+  products_path = Path(config.FLAGS.static_data_dir) / "products.csv"
+  inventory_path = Path(config.FLAGS.static_data_dir) / "inventory.csv"
+  
+  products = {}
+  try:
+    with open(products_path, newline="", encoding="utf-8") as f:
+      reader = csv.DictReader(f)
+      for row in reader:
+        products[row["id"]] = row
+  except Exception as e:
+    logger.error(f"Error reading products: {e}")
+      
+  try:
+    with open(inventory_path, newline="", encoding="utf-8") as f:
+      reader = csv.DictReader(f)
+      for row in reader:
+        if row["product_id"] in products:
+          products[row["product_id"]]["quantity"] = row["quantity"]
+  except Exception as e:
+    logger.error(f"Error reading inventory: {e}")
+
+  template_path = Path(__file__).resolve().parent / "frontend" / "page.html"
+  try:
+    html_template = template_path.read_text(encoding="utf-8")
+  except Exception as e:
+    logger.error(f"Error reading template: {e}")
+    html_template = "<html><body><h1>Template missing</h1><!-- PRODUCTS_PLACEHOLDER --></body></html>"
+
+  products_html = ""
+  for _, p in products.items():
+    qty = int(p.get("quantity", 0))
+    if qty > 0:
+      stock_html = f'<div class="stock-status in-stock">Available ({qty})</div>'
+    else:
+      stock_html = f'<div class="stock-status out-of-stock">Sold Out</div>'
+      
+    price_val = float(p.get("price", 0))
+    price_str = f"${price_val/100:.2f}"
+    
+    # Use local image path matching the filename in the CSV URL
+    img_url = p.get("image_url", "")
+    image_filename = img_url.split("/")[-1] if "/" in img_url else img_url
+    local_img_path = f"/images/{image_filename}"
+    
+    products_html += f"""
+        <div class="product-card">
+            <div class="image-wrapper">
+                <img src="{local_img_path}" alt="{p.get('title', '')}">
+            </div>
+            <div class="product-info">
+                <h3 class="product-title">{p.get('title', '')}</h3>
+                <div class="product-price">{price_str}</div>
+                {stock_html}
+            </div>
+        </div>
+    """
+      
+  final_html = html_template.replace("<!-- PRODUCTS_PLACEHOLDER -->", products_html)
+  return final_html
+
 # MCP JSON-RPC 2.0 Endpoint
 app.add_api_route(
   "/ucp/mcp", mcp_dispatcher, methods=["POST"], 
