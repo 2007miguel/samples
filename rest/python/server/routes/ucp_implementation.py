@@ -199,7 +199,7 @@ async def complete_checkout(
   ap2: Annotated[Ap2CompleteRequest | None, Body()] = None,
 ) -> dict[str, Any]:
   """Complete Checkout Implementation."""
-  del common_headers  # Unused
+
 
   # Map payment_data (single instrument) to PaymentCreateRequest
   instrument = PaymentInstrument(root=payment_data)
@@ -209,7 +209,7 @@ async def complete_checkout(
   )
 
   checkout_result = await checkout_service.complete_checkout(
-    checkout_id, payment_req, risk_signals, idempotency_key, ap2=ap2
+    checkout_id, payment_req, risk_signals, idempotency_key, ap2=ap2, ucp_agent=common_headers.ucp_agent
   )
   return checkout_result.model_dump(mode="json", by_alias=True)
 

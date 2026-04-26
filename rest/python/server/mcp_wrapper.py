@@ -182,6 +182,8 @@ async def mcp_dispatcher(request: Request):
                     "payment_data": tool_arguments.get("payment_data"),
                     "risk_signals": tool_arguments.get("risk_signals", {})
                 }
+                if "ap2" in tool_arguments:
+                    complete_body["ap2"] = tool_arguments.get("ap2")
                 rest_response = await client.post(
                     f"/checkout-sessions/{checkout_id}/complete",
                     json=complete_body,

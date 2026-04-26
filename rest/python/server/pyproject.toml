@@ -20,6 +20,9 @@ dependencies = [
     "ucp-sdk",
     "shortuuid",
     "httpx>=0.26.0",
+    "pyjwt>=2.12.1",
+    "cryptography>=46.0.7",
+    "jcs>=0.2.1",
 ]
 
 [dependency-groups]

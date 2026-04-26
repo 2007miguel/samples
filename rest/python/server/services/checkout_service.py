@@ -53,6 +53,7 @@ from models import UnifiedCheckoutUpdateRequest
 from pydantic import AnyUrl
 from pydantic import BaseModel
 from services.fulfillment_service import FulfillmentService
+from services.ap2_service import Ap2Service
 from sqlalchemy.ext.asyncio import AsyncSession
 from ucp_sdk.models._internal import Response
 from ucp_sdk.models._internal import ResponseCheckout
@@ -130,6 +131,7 @@ class CheckoutService:
     self.products_session = products_session
     self.transactions_session = transactions_session
     self.base_url = base_url.rstrip("/")
+    self.ap2_service = Ap2Service()
 
   def _compute_hash(self, data: Any) -> str:
     """Compute SHA256 hash of the JSON-serialized data."""
@@ -267,7 +269,6 @@ class CheckoutService:
               # (FulfillmentDestinationRequest -> ShippingDestinationRequest)
               # The response model is FulfillmentDestinationResponse ->
               # ShippingDestinationResponse
-
               # Extract the inner ShippingDestinationRequest
               inner_dest = dest_req.root
 
@@ -340,6 +341,21 @@ class CheckoutService:
         checkout.status = CheckoutStatus.READY_FOR_COMPLETE
 
     response_body = checkout.model_dump(mode="json", by_alias=True)
+    
+    # [AP2-HOOK] Generate and inject the Cart Mandate seamlessly if ready
+    if checkout.status == CheckoutStatus.READY_FOR_COMPLETE:
+        try:
+            mandate = self.ap2_service.create_merchant_authorization(checkout)
+            if "ap2" not in response_body or response_body["ap2"] is None:
+                response_body["ap2"] = {}
+            response_body["ap2"]["merchant_authorization"] = mandate
+            checkout = Checkout(**response_body) # Rebuild to keep model in sync
+            #logger.info("Checkout Create Response JSON: %s", json.dumps(response_body, indent=2))
+        except Exception as e:
+            logger.warning(f"Error generando Cart Mandate de AP2: {e}")
+
+    #logger.info("Checkout Create Response JSON: %s", json.dumps(response_body, indent=2))
+
 
     # Persist checkout to Transactions DB
     await db.save_checkout(
@@ -600,6 +616,20 @@ class CheckoutService:
         existing.status = CheckoutStatus.IN_PROGRESS
 
     response_body = existing.model_dump(mode="json", by_alias=True)
+    
+    # [AP2-HOOK] Generate and inject the Cart Mandate seamlessly if ready
+    if existing.status == CheckoutStatus.READY_FOR_COMPLETE:
+        try:
+            mandate = self.ap2_service.create_merchant_authorization(existing)
+            if "ap2" not in response_body or response_body["ap2"] is None:
+                response_body["ap2"] = {}
+            response_body["ap2"]["merchant_authorization"] = mandate
+            existing = Checkout(**response_body) # Rebuild to keep model in sync
+            logger.info("Checkout Update Response JSON: %s", json.dumps(response_body, indent=2))
+        except Exception as e:
+            logger.warning(f"Error generando Cart Mandate de AP2: {e}")
+
+    #logger.info("Checkout Update Response JSON: %s", json.dumps(response_body, indent=2))
 
     await db.save_checkout(
       self.transactions_session,
@@ -627,6 +657,7 @@ class CheckoutService:
     risk_signals: dict[str, Any],
     idempotency_key: str,
     ap2: Ap2CompleteRequest | None = None,
+    ucp_agent: str | None = None,
   ) -> Checkout:
     """Complete a checkout session."""
     logger.info("Completing checkout session %s", checkout_id)
@@ -661,6 +692,16 @@ class CheckoutService:
 
     checkout = await self._get_and_validate_checkout(checkout_id)
     self._ensure_modifiable(checkout, "complete")
+
+    # [AP2-HOOK] Validate Agent's Cryptographic artifacts before proceeding
+    logger.info("[AP2-HOOK] complete_checkout: ap2=%s, checkout_mandate present=%s", bool(ap2), bool(ap2 and ap2.checkout_mandate))
+    if ap2 and ap2.checkout_mandate:
+        logger.info("[AP2-HOOK] Invoking validate_agent_artifacts for checkout %s", checkout_id)
+        await self.ap2_service.validate_agent_artifacts(ap2.checkout_mandate.root, checkout, ucp_agent)
+        logger.info("[AP2-HOOK] validate_agent_artifacts completed successfully for checkout %s", checkout_id)
+    else:
+        logger.warning("[AP2-HOOK] REJECTED: No ap2.checkout_mandate in complete_checkout for checkout %s.", checkout_id)
+        raise InvalidRequestError("AP2 checkout_mandate is required to complete this checkout.")
 
     # Validate Fulfillment (Required for completion in this implementation)
     if not self._is_fulfillment_valid(checkout):

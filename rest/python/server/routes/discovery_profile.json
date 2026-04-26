@@ -49,6 +49,23 @@
         "spec": "https://ucp.dev/specification/buyer-consent",
         "schema": "https://ucp.dev/schemas/shopping/buyer_consent.json",
         "extends": "dev.ucp.shopping.checkout"
+      },
+      {
+        "name": "dev.ucp.ap2.mandate",
+        "version": "2026-01-11",
+        "spec": "https://ucp.dev/specification/ap2-mandate",
+        "schema": "https://ucp.dev/schemas/shopping/ap2_mandate.json",
+        "extends": "dev.ucp.shopping.checkout",
+        "config": {
+          "vp_formats_supported": {
+            "dc+sd-jwt": {}
+          },
+          "merchant_authorization": {
+            "format": "jwt",
+            "alg_values_supported": ["ES256"],
+            "uses_signing_keys": true
+          }
+        }
       }
     ]
   },
@@ -113,5 +130,16 @@
         }
       }
     ]
-  }
+  }, 
+  "signing_keys": [
+    {
+      "kid": "merchant-key-2026-04",
+      "kty": "EC",
+      "crv": "P-256",
+      "x": "quUq9jREn983xVgBs64TEvDWsDPVl81r-IioWkAYAeM",
+      "y": "5qmlqt9t5-93sIQ-0lLm2LbW7it9GUNUNrQDo0ymEXw",
+      "use": "sig",
+      "alg": "ES256"
+    }
+  ]
 }

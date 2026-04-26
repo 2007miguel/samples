@@ -27,14 +27,19 @@
                             "description": "The product ID."
                           }
                         },
-                        "required": ["id"]
+                        "required": [
+                          "id"
+                        ]
                       },
                       "quantity": {
                         "type": "integer",
                         "minimum": 1
                       }
                     },
-                    "required": ["item", "quantity"]
+                    "required": [
+                      "item",
+                      "quantity"
+                    ]
                   }
                 },
                 "currency": {
@@ -42,10 +47,15 @@
                   "description": "The ISO 4217 currency code (e.g., 'USD')."
                 }
               },
-              "required": ["line_items", "currency"]
+              "required": [
+                "line_items",
+                "currency"
+              ]
             }
           },
-          "required": ["checkout"]
+          "required": [
+            "checkout"
+          ]
         }
       },
       {
@@ -60,7 +70,9 @@
               "description": "The unique ID of the checkout session."
             }
           },
-          "required": ["id"]
+          "required": [
+            "id"
+          ]
         }
       },
       {
@@ -79,7 +91,10 @@
               "description": "A checkout object containing the fields to update."
             }
           },
-          "required": ["id", "checkout"]
+          "required": [
+            "id",
+            "checkout"
+          ]
         }
       },
       {
@@ -96,9 +111,26 @@
             "payment_data": {
               "type": "object",
               "description": "The encrypted payment instrument and details."
+            },
+            "ap2": {
+              "type": "object",
+              "description": "Agent Payment Protocol (AP2) artifacts, such as the checkout mandate.",
+              "properties": {
+                "checkout_mandate": {
+                  "type": "string",
+                  "description": "The SD-JWT checkout mandate and key binding."
+                }
+              }
+            },
+            "risk_signals": {
+              "type": "object",
+              "description": "Optional risk signals from the client."
             }
           },
-          "required": ["id", "payment_data"]
+          "required": [
+            "id",
+            "payment_data"
+          ]
         }
       },
       {
@@ -113,7 +145,9 @@
               "description": "The unique ID of the checkout session."
             }
           },
-          "required": ["id"]
+          "required": [
+            "id"
+          ]
         }
       }
     ]
